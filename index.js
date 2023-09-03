@@ -12,9 +12,6 @@ const Models = require('./models.js');
 const Movies = Models.Movie;
 const Users = Models.User;
 
-app.use(express.static('public'));
-app.use(morgan('common'));
-
 // mongoose.connect('mongodb://localhost:27017/finalDB', 
 // { useNewUrlParser: true, useUnifiedTopology: true });
 
@@ -23,28 +20,31 @@ mongoose.connect( process.env.CONNECTION_URI,
 
 
 const app = express();
+app.use(express.static('public'));
+app.use(morgan('common'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use(cors());
 
-let allowedOrigins = [
-    'http://localhost:8080', 
-    'https://movieapp-1234.herokuapp.com/',
-    'https://git.heroku.com/movieapp-1234.git',
-    'http://localhost:1234',
-    'http://localhost:4200',
-];
+// let allowedOrigins = [
+//     'http://localhost:8080', 
+//     'https://movieapp-1234.herokuapp.com/',
+//     'https://git.heroku.com/movieapp-1234.git',
+//     'http://localhost:1234',
+//     'http://localhost:4200',
+// ];
 
-app.use(cors({
-  origin: (origin, callback) => {
-    if(!origin) return callback(null, true);
-    if(allowedOrigins.indexOf(origin) === -1){ // If a specific origin isn’t found on the list of allowed origins
-      let message = 'The CORS policy for this application doesn’t allow access from origin ' + origin;
-      return callback(new Error(message ), false);
-    }
-    return callback(null, true);
-  }
-}));
+// app.use(cors({
+//   origin: (origin, callback) => {
+//     if(!origin) return callback(null, true);
+//     if(allowedOrigins.indexOf(origin) === -1){ // If a specific origin isn’t found on the list of allowed origins
+//       let message = 'The CORS policy for this application doesn’t allow access from origin ' + origin;
+//       return callback(new Error(message ), false);
+//     }
+//     return callback(null, true);
+//   }
+// }));
 
 let auth = require('./auth')(app);
 const passport = require('passport');
@@ -56,7 +56,7 @@ app.get('/', (req, res) => {
 });
 
 // #1 Return a list of ALL movies
-app.get('/movies', passport.authenticate('jwt', {session: false}), async (req, res) => {
+app.get('/movies', passport.authenticate('jwt', {session: false}), (req, res) => {
   Movies.find()
     .then((movies) => {
       res.status(200).json(movies);
@@ -68,7 +68,7 @@ app.get('/movies', passport.authenticate('jwt', {session: false}), async (req, r
 });
 
 // #2 Return data about a single movie by title 
-app.get('/movies/:Title', passport.authenticate('jwt', {session: false}), async (req, res) => {
+app.get('/movies/:Title', passport.authenticate('jwt', {session: false}), (req, res) => {
   Movies.findOne({Title: req.params.Title})
     .then((movie) => {
       res.status(200).json(movie);
@@ -80,7 +80,7 @@ app.get('/movies/:Title', passport.authenticate('jwt', {session: false}), async 
 });
 
 // # 3 Return data about a genre (description) by name
-app.get('/movies/genre/:genreName', passport.authenticate('jwt', {session: false}), async (req, res) => {
+app.get('/movies/genre/:genreName', passport.authenticate('jwt', {session: false}), (req, res) => {
   Movies.findOne({'Genre.Name':req.params.genreName})
     .then((movie) => {
       res.status(200).json(movie.Genre);
@@ -92,7 +92,7 @@ app.get('/movies/genre/:genreName', passport.authenticate('jwt', {session: false
 });
 
 // #4 Return data about a director (bio) by name
-app.get('/movies/directors/:directorName', passport.authenticate('jwt', {session: false}), async (req, res) => {
+app.get('/movies/directors/:directorName', passport.authenticate('jwt', {session: false}), (req, res) => {
   Movies.findOne({'Director.Name':req.params.directorName})
     .then((movie) => {
       res.status(200).json(movie.Director);
@@ -110,16 +110,17 @@ app.post('/users', [
   check('Username', 'Username contains non alphanumeric chacters - not allowed').isAlphanumeric(),
   check('Password', 'Password is required').not().isEmpty(),
   check('Email', 'Email does not appear to be valid').isEmail()
-], async (req, res) => {
-  let errors = validationResult(req);
+], (req, res) => {
+
+  const errors = validationResult(req);
   
   if (!errors.isEmpty()) {
     return res.status(422).json({errors: errors.array()});
   }
 
-  let hashedPassword = Users.hashPassword(req.body.Password);
+  const hashedPassword = Users.hashPassword(req.body.Password);
 
-  await Users.findOne({ Username: req.body.Username })
+  Users.findOne({ Username: req.body.Username })
     .then((user) => {
       if (user) {
         return res.status(400).send(req.body.Username + ' already exists');
