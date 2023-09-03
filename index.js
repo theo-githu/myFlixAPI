@@ -30,6 +30,7 @@ app.use(express.urlencoded({ extended: true }));
 let allowedOrigins = [
     'http://localhost:8080', 
     'https://movieapp-1234.herokuapp.com/',
+    'https://git.heroku.com/movieapp-1234.git',
     'http://localhost:1234',
     'http://localhost:4200',
 ];
